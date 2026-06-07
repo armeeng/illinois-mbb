@@ -11,7 +11,7 @@ WITH base AS (
         CAST(CAST(g.game_date AS DATE) - INTERVAL '1' DAY AS DATE) AS stats_date
     FROM grouped_possessions gp
     JOIN games g ON gp.game_id = g.game_id
-    WHERE gp.poss >= 10
+    WHERE gp.poss >= 5
 ),
 
 away_expanded AS (

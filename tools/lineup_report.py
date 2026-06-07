@@ -47,9 +47,31 @@ def load():
     gp = pd.read_csv(DATA / "grouped_possessions.csv", dtype={"game_id": str})
     games = pd.read_csv(DATA / "games.csv", dtype={"away_team_id": str, "home_team_id": str, "game_id": str})
     teams = pd.read_csv(DATA / "teams.csv", dtype={"team_id": str})
-    players = pd.read_csv(DATA / "players.csv")[["espn_player_id", "espn_name"]].drop_duplicates("espn_player_id")
-    id_to_name = players.set_index("espn_player_id")["espn_name"].to_dict()
-    return gp, games, teams, id_to_name
+    players_full = pd.read_csv(DATA / "players.csv")[
+        ["espn_player_id", "espn_name", "espn_team", "torvik_team"]
+    ].drop_duplicates("espn_player_id")
+    id_to_name = players_full.set_index("espn_player_id")["espn_name"].to_dict()
+
+    # Teams with >= 2 games
+    game_counts = pd.concat([
+        games[["away_team_id"]].rename(columns={"away_team_id": "team_id"}),
+        games[["home_team_id"]].rename(columns={"home_team_id": "team_id"}),
+    ]).groupby("team_id").size().reset_index(name="game_count")
+    qualified_ids = set(game_counts[game_counts["game_count"] >= 2]["team_id"])
+    qualified_teams = teams[teams["team_id"].isin(qualified_ids)]
+
+    # Map ESPN team name -> torvik abbreviation so Tab 2 can filter players
+    espn_to_torvik = (
+        players_full.dropna(subset=["espn_team", "torvik_team"])
+        .drop_duplicates("espn_team")
+        .set_index("espn_team")["torvik_team"]
+        .to_dict()
+    )
+    qualified_torvik_teams = {
+        espn_to_torvik[t] for t in qualified_teams["team_name"] if t in espn_to_torvik
+    }
+
+    return gp, games, qualified_teams, id_to_name, qualified_torvik_teams
 
 
 @st.cache_data
@@ -208,7 +230,7 @@ tab1, tab2 = st.tabs(["Lineup Analytics", "Lineup Predictor"])
 
 # ── Tab 1: existing analytics ─────────────────────────────────────────────────
 with tab1:
-    gp, games, teams, id_to_name = load()
+    gp, games, teams, id_to_name, qualified_torvik_teams = load()
 
     col1, col2 = st.columns([2, 1], vertical_alignment="center")
     with col1:
@@ -245,10 +267,13 @@ with tab1:
 with tab2:
     latest_stats, all_stats, latest_date = load_prediction_data()
     model = load_model()
+    _, _, _, _, qualified_torvik_teams = load()
 
     st.caption(f"Using player stats from **{latest_date}** (latest available)")
 
-    all_display = sorted(latest_stats["display_name"].dropna().unique())
+    all_display = sorted(
+        latest_stats[latest_stats["team"].isin(qualified_torvik_teams)]["display_name"].dropna().unique()
+    )
 
     col_away, col_home = st.columns(2)
 
