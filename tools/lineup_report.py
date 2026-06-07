@@ -38,11 +38,8 @@ FEATURE_COLS = [
 
 FAKE_GAME_ID = 999999999
 
-def styled(df):
-    return df.style.format(precision=1, na_rep="—").hide(axis="index")
-
 def render_table(df):
-    st.markdown(f'<div class="ct-wrap">{styled(df).to_html()}</div>', unsafe_allow_html=True)
+    st.dataframe(df, width="stretch", hide_index=True, height=min(500, (len(df) + 1) * 35 + 3))
 
 
 @st.cache_data
@@ -202,12 +199,6 @@ st.markdown("""
 .block-container {padding-top: 2rem; padding-bottom: 2rem; max-width: 1100px;}
 h1 {font-size: 1.5rem; font-weight: 600; margin-bottom: 0;}
 h3 {font-size: 1rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.25rem;}
-.ct-wrap {overflow: auto; max-height: 480px; border: 1px solid rgba(49,51,63,.2); border-radius: .5rem; margin-bottom: 1rem;}
-.ct-wrap table {width: 100%; border-collapse: collapse; font-size: .875rem;}
-.ct-wrap th {background: rgba(49,51,63,.05); padding: .5rem 1rem; text-align: center !important; vertical-align: middle !important; font-weight: 600; border-bottom: 1px solid rgba(49,51,63,.2); position: sticky; top: 0; z-index: 1;}
-.ct-wrap td {padding: .4rem 1rem; text-align: center !important; vertical-align: middle !important; border-bottom: 1px solid rgba(49,51,63,.07);}
-.ct-wrap tr:last-child td {border-bottom: none;}
-.ct-wrap tr:hover td {background: rgba(49,51,63,.04);}
 </style>
 """, unsafe_allow_html=True)
 
@@ -223,7 +214,7 @@ with tab1:
     with col1:
         team_name = st.selectbox("Team", sorted(teams["team_name"].unique()), label_visibility="collapsed")
     with col2:
-        min_poss = st.slider("Min possessions", 10, 150, 30)
+        min_poss = st.slider("Min possessions", 0, 500, 30)
 
     tid = teams[teams["team_name"] == team_name]["team_id"].iloc[0]
     df = filter_team(gp, games, tid)

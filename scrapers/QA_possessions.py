@@ -10,8 +10,8 @@ def fetch(game_id):
 
 
 def box_poss(d):
-    """Sum FGA + 0.44*FTA + TO - ORB across both teams from box score totals."""
-    total = 0
+    """Average of each team's FGA + 0.44*FTA + TO - ORB from box score totals."""
+    estimates = []
     for team in d["boxscore"]["players"]:
         stats = team["statistics"][0]
         kv = dict(zip(stats.get("keys", stats.get("names", [])), stats.get("totals", [])))
@@ -21,8 +21,8 @@ def box_poss(d):
         fta = int(ft.split("-")[1]) if "-" in ft else 0
         to_ = int(kv.get("turnovers", 0) or 0)
         orb = int(kv.get("offensiveRebounds", 0) or 0)
-        total += fga + 0.44 * fta + to_ - orb
-    return total
+        estimates.append(fga + 0.44 * fta + to_ - orb)
+    return sum(estimates) / len(estimates) if estimates else 0
 
 
 def check_game(stints, d):

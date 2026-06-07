@@ -16,11 +16,15 @@ def stints(game_id):
     on = {s["team"]["id"]: {p["athlete"]["id"] for p in s["statistics"][0]["athletes"] if p.get("starter")}
           for s in d["boxscore"]["players"]}
 
-    rows, sid, sa, sh, fga, fta, to_, orb = [], 0, 0, 0, 0, 0, 0, 0
+    rows, sid, sa, sh = [], 0, 0, 0
+    a_fga = a_fta = a_to = a_orb = 0
+    h_fga = h_fta = h_to = h_orb = 0
 
     def flush(ea, eh):
         nonlocal sid
-        poss = fga + 0.44 * fta + to_ - orb
+        away_poss = a_fga + 0.44 * a_fta + a_to - a_orb
+        home_poss = h_fga + 0.44 * h_fta + h_to - h_orb
+        poss = (away_poss + home_poss) / 2
         a = (sorted(on.get(actual_away_tid, []))[:5] + [None] * 5)[:5]
         h = (sorted(on.get(actual_home_tid, []))[:5] + [None] * 5)[:5]
         net_pts = (ea - sa) - (eh - sh)
@@ -36,7 +40,9 @@ def stints(game_id):
         ea, eh = int(p["awayScore"]), int(p["homeScore"])
         if "Substitution" in typ:
             flush(ea, eh)
-            sa, sh, fga, fta, to_, orb = ea, eh, 0, 0, 0, 0
+            sa, sh = ea, eh
+            a_fga = a_fta = a_to = a_orb = 0
+            h_fga = h_fta = h_to = h_orb = 0
             period, clock = p["period"]["number"], p["clock"]["displayValue"]
             while i < len(plays) and "Substitution" in plays[i]["type"].get("text", "") \
                     and plays[i]["period"]["number"] == period and plays[i]["clock"]["displayValue"] == clock:
@@ -49,10 +55,21 @@ def stints(game_id):
                         on.get(tid, set()).add(pid)
                 i += 1
         else:
-            fga += bool(p.get("shootingPlay")) and typ != "MadeFreeThrow"
-            fta += typ == "MadeFreeThrow"
-            to_ += "Turnover" in typ
-            orb += "Offensive Rebound" in typ
+            tid = p.get("team", {}).get("id")
+            is_away = tid == actual_away_tid
+            is_home = tid == actual_home_tid
+            if bool(p.get("shootingPlay")) and typ != "MadeFreeThrow":
+                if is_away:   a_fga += 1
+                elif is_home: h_fga += 1
+            if typ == "MadeFreeThrow":
+                if is_away:   a_fta += 1
+                elif is_home: h_fta += 1
+            if "Turnover" in typ:
+                if is_away:   a_to += 1
+                elif is_home: h_to += 1
+            if "Offensive Rebound" in typ:
+                if is_away:   a_orb += 1
+                elif is_home: h_orb += 1
             i += 1
 
     if plays:
