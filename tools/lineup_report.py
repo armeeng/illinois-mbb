@@ -344,7 +344,8 @@ with tab2:
                         names = [s.rsplit(" (", 1)[0] for s in selections]
                         rows = latest_stats[latest_stats["player_name"].isin(names)].drop_duplicates("player_name")
                         rows = rows.set_index("player_name").loc[names].reset_index()
-                        return rows[STAT_COLS].rename(columns=dict(zip(STAT_COLS, STAT_LABELS)))
+                        tbl = rows[STAT_COLS].rename(columns=dict(zip(STAT_COLS, STAT_LABELS)))
+                        return tbl.round({c: 1 for c in tbl.select_dtypes("number").columns})
 
                     st.subheader("Away Lineup")
                     render_table(build_player_table(away_selections))
