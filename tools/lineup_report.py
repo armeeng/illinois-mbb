@@ -57,7 +57,7 @@ def load():
         games[["away_team_id"]].rename(columns={"away_team_id": "team_id"}),
         games[["home_team_id"]].rename(columns={"home_team_id": "team_id"}),
     ]).groupby("team_id").size().reset_index(name="game_count")
-    qualified_ids = set(game_counts[game_counts["game_count"] >= 2]["team_id"])
+    qualified_ids = set(game_counts[game_counts["game_count"] >= 15]["team_id"])
     qualified_teams = teams[teams["team_id"].isin(qualified_ids)]
 
     # Map ESPN team name -> torvik abbreviation so Tab 2 can filter players
